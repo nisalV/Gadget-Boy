@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "349291214690",
+    "project_id": "gadget-boy-0522",
+    "storage_bucket": "gadget-boy-0522.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:349291214690:android:26dce35002b9eb90765e3b",
+        "android_client_info": {
+          "package_name": "com.example.gadget_boy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "349291214690-j0qmv8j4qgl2mq1th13sblsdf5u9eheh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCn6kyCer_dW1WobdGvrdCc96aijKr1WQU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "349291214690-j0qmv8j4qgl2mq1th13sblsdf5u9eheh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
