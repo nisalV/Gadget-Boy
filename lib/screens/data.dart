@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gadget_boy/screens/viewPdf.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -20,8 +21,7 @@ class Information extends StatefulWidget {
   final String searchData;
   final String typeFirebase;
 
-  const Information(this.searchData, this.searchType, this.typeFirebase,
-      {Key? key})
+  const Information(this.searchData, this.searchType, this.typeFirebase, {Key? key})
       : super(key: key);
 
   @override
@@ -92,10 +92,25 @@ class _InformationState extends State<Information> {
       resDescription = data!['description'];
       try {
         resLinks = List.from(data['links']);
+      } catch (e) {
+        return;
+      }
+      try {
         resImages = List.from(data['images']);
+      } catch (e) {
+        return;
+      }
+      try {
         resPdf = List.from(data['pdf']);
+      } catch (e) {
+        return;
+      }
+      try {
         resVidLinks = List.from(data['videos']);
-      } catch (e) {}
+      } catch (e) {
+        return;
+      }
+
       hasData = true;
     } else {
       Navigator.pop(context);
@@ -108,19 +123,26 @@ class _InformationState extends State<Information> {
       ));
     }
 
-    for (var element in resImages) {
-      Reference ref = FirebaseStorage.instance
-          .ref()
-          .child("${widget.typeFirebase}/${widget.searchData}/images/$element");
-      String link = await ref.getDownloadURL();
-      resImgLink.add(link);
+    try {
+      for (var element in resPdf) {
+        Reference ref = FirebaseStorage.instance
+            .ref()
+            .child("${widget.typeFirebase}/${widget.searchData}/pdf/$element");
+        String link = await ref.getDownloadURL();
+        resPdfLink.add(link);
+      }
+    } catch (e) {
+      return;
     }
-    for (var element in resPdf) {
-      Reference ref = FirebaseStorage.instance
-          .ref()
-          .child("${widget.typeFirebase}/${widget.searchData}/pdf/$element");
-      String link = await ref.getDownloadURL();
-      resPdfLink.add(link);
+    try {
+      for (var element in resImages) {
+        Reference ref = FirebaseStorage.instance.ref().child(
+            "${widget.typeFirebase}/${widget.searchData}/images/$element");
+        String link = await ref.getDownloadURL();
+        resImgLink.add(link);
+      }
+    } catch (e) {
+      return;
     }
   }
 
@@ -157,9 +179,9 @@ class _InformationState extends State<Information> {
 
     return DefaultTabController(
       length: 4,
+      key: _scaffoldKey,
       child: hasData
           ? Scaffold(
-              key: _scaffoldKey,
               backgroundColor: Colors.white,
               appBar: AppBar(
                 leading: BackButton(
@@ -323,25 +345,34 @@ class _InformationState extends State<Information> {
                                         Icons.file_download,
                                         color: Colors.redAccent,
                                       ),
-                                      onPressed: () {
-                                        try {
-                                          _downloadFile(
-                                              resPdfLink[index], resPdf[index]);
-                                          setState(() {
-                                            position = index;
-                                          }); //Downloading
-
-                                        } on FirebaseException catch (e) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(SnackBar(
-                                            content: Text(
-                                              "Unable to download ${resPdf[index]}",
-                                              textAlign: TextAlign.center,
-                                              style: const TextStyle(
-                                                  color: Colors.red),
-                                            ),
-                                          ));
+                                      onPressed: () async {
+                                        if(resPdfLink[index] != null){
+                                          await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      ViewPDF(
+                                                          resPdf[index], resPdfLink[index])));
                                         }
+
+                                        // try {
+                                        //   // _downloadFile(
+                                        //   //     resPdfLink[index], resPdf[index]);
+                                        //   // setState(() {
+                                        //   //   position = index;
+                                        //   // }); //Downloading
+                                        //
+                                        // } on FirebaseException {
+                                        //   ScaffoldMessenger.of(context)
+                                        //       .showSnackBar(SnackBar(
+                                        //     content: Text(
+                                        //       "Unable to download ${resPdf[index]}",
+                                        //       textAlign: TextAlign.center,
+                                        //       style: const TextStyle(
+                                        //           color: Colors.red),
+                                        //     ),
+                                        //   ));
+                                        // }
                                       }, //Download video
                                     )
                                   ],
@@ -370,8 +401,8 @@ class _InformationState extends State<Information> {
                                           child: SizedBox(
                                             width: width - 100,
                                             child: Link(
-                                              uri:
-                                                  Uri.parse("https://"+resVidLinks[index]),
+                                              uri: Uri.parse("https://" +
+                                                  resVidLinks[index]),
                                               builder: (context, followLink) =>
                                                   GestureDetector(
                                                 onLongPress: () {
@@ -431,7 +462,8 @@ class _InformationState extends State<Information> {
                                         child: SizedBox(
                                           width: width - 100,
                                           child: Link(
-                                            uri: Uri.parse("https://"+resLinks[index]),
+                                            uri: Uri.parse(
+                                                "https://" + resLinks[index]),
                                             builder: (context, followLink) =>
                                                 GestureDetector(
                                               onLongPress: () {
@@ -440,7 +472,8 @@ class _InformationState extends State<Information> {
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(
                                                         const SnackBar(
-                                                  content: Text("Link copied",
+                                                  content: Text(
+                                                    "Link copied",
                                                     textAlign: TextAlign.center,
                                                   ),
                                                 ));
