@@ -1,16 +1,13 @@
 import 'dart:io';
-import 'dart:isolate';
 import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gadget_boy/screens/videoplayer.dart';
 import 'package:gadget_boy/screens/viewPdf.dart';
-import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:url_launcher/link.dart';
@@ -21,7 +18,8 @@ class Information extends StatefulWidget {
   final String searchData;
   final String typeFirebase;
 
-  const Information(this.searchData, this.searchType, this.typeFirebase, {Key? key})
+  const Information(this.searchData, this.searchType, this.typeFirebase,
+      {Key? key})
       : super(key: key);
 
   @override
@@ -43,29 +41,14 @@ class _InformationState extends State<Information> {
   var resDescription;
   List<String> resLinks = [];
   List<String> resVidLinks = [];
+  List<String> resVideos = [];
   List<String> resImages = [];
   List<String> resImgLink = [];
   List<String> resPdf = [];
   List<String> resPdfLink = [];
 
-  Map? res;
-
-  ReceivePort receivePort = ReceivePort();
-  int progress = 0;
-  int position = 0;
-
   @override
   void initState() {
-    IsolateNameServer.registerPortWithName(receivePort.sendPort, 'Downloading');
-
-    receivePort.listen((message) {
-      setState(() {
-        progress = message;
-      });
-    });
-
-    FlutterDownloader.registerCallback(downloadCallback);
-
     getData().whenComplete(() {
       setState(() {
         resDescription;
@@ -73,15 +56,11 @@ class _InformationState extends State<Information> {
         resVidLinks;
         resImages;
         resLinks;
+        resVideos;
         hasData;
       });
     });
     super.initState();
-  }
-
-  static downloadCallback(id, status, progress) {
-    SendPort? sendPort = IsolateNameServer.lookupPortByName("Downloading");
-    sendPort?.send(progress);
   }
 
   Future getData() async {
@@ -90,25 +69,26 @@ class _InformationState extends State<Information> {
     if (docSnapshot.exists) {
       Map<String, dynamic>? data = docSnapshot.data();
       resDescription = data!['description'];
+      print(data);
       try {
         resLinks = List.from(data['links']);
       } catch (e) {
-        return;
+        print("e1 :   $e");
       }
       try {
         resImages = List.from(data['images']);
       } catch (e) {
-        return;
+        print("e2 :   $e");
       }
       try {
         resPdf = List.from(data['pdf']);
       } catch (e) {
-        return;
+        print("e3 :   $e");
       }
       try {
-        resVidLinks = List.from(data['videos']);
+        resVideos = List.from(data['videos']);
       } catch (e) {
-        return;
+        print("e5 :   $e");
       }
 
       hasData = true;
@@ -132,7 +112,7 @@ class _InformationState extends State<Information> {
         resPdfLink.add(link);
       }
     } catch (e) {
-      return;
+      print("e6 :   $e");
     }
     try {
       for (var element in resImages) {
@@ -142,23 +122,18 @@ class _InformationState extends State<Information> {
         resImgLink.add(link);
       }
     } catch (e) {
-      return;
+      print("e7 :   $e");
     }
-  }
-
-  void _downloadFile(linkPDF, fileName) async {
-    final status = await Permission.storage.request();
-
-    if (status.isGranted) {
-      String baseStorage = (await getExternalStorageDirectory())!.path;
-      String savePath = '$baseStorage/$fileName';
-      if (await File(savePath).exists()) {
-        OpenFile.open(savePath);
-      } else {
-        final id = await FlutterDownloader.enqueue(
-            url: linkPDF, savedDir: baseStorage.toString(), fileName: fileName);
+    try {
+      for (var element in resVideos) {
+        Reference ref = FirebaseStorage.instance.ref().child(
+            "${widget.typeFirebase}/${widget.searchData}/videos/$element");
+        String link = await ref.getDownloadURL();
+        resVidLinks.add(link);
       }
-    } else {}
+    } catch (e) {
+      print("e7 :   $e");
+    }
   }
 
   @override
@@ -323,75 +298,86 @@ class _InformationState extends State<Information> {
                           ListView.builder(
                             itemCount: resPdf.length,
                             itemBuilder: (context, index) {
-                              return Padding(
-                                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.picture_as_pdf,
-                                      color: Colors.red,
+                              return SizedBox(
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    resPdfLink.isNotEmpty
+                                        ? await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) => ViewPDF(
+                                                    resPdf[index],
+                                                    resPdfLink[index])))
+                                        : ScaffoldMessenger.of(context)
+                                            .showSnackBar(const SnackBar(
+                                            content: Text(
+                                              "Database error: Link doesn't exist!",
+                                              style:
+                                                  TextStyle(color: Colors.red),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ));
+                                  },
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets.fromLTRB(8, 15, 8, 0),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.picture_as_pdf,
+                                          color: Colors.red,
+                                        ),
+                                        const SizedBox(
+                                          width: 8,
+                                        ),
+                                        Flexible(
+                                          child: SizedBox(
+                                            width: width - 50,
+                                            child: Text(
+                                              resPdf[index],
+                                              overflow: TextOverflow.visible,
+                                              maxLines: 1,
+                                              style: const TextStyle(
+                                                  color: Colors.redAccent),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(
-                                      width: 8,
-                                    ),
-                                    Text(
-                                      resPdf[index],
-                                      style: const TextStyle(
-                                          color: Colors.redAccent),
-                                    ),
-                                    const Spacer(),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.file_download,
-                                        color: Colors.redAccent,
-                                      ),
-                                      onPressed: () async {
-                                        if(resPdfLink[index] != null){
-                                          await Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      ViewPDF(
-                                                          resPdf[index], resPdfLink[index])));
-                                        }
-
-                                        // try {
-                                        //   // _downloadFile(
-                                        //   //     resPdfLink[index], resPdf[index]);
-                                        //   // setState(() {
-                                        //   //   position = index;
-                                        //   // }); //Downloading
-                                        //
-                                        // } on FirebaseException {
-                                        //   ScaffoldMessenger.of(context)
-                                        //       .showSnackBar(SnackBar(
-                                        //     content: Text(
-                                        //       "Unable to download ${resPdf[index]}",
-                                        //       textAlign: TextAlign.center,
-                                        //       style: const TextStyle(
-                                        //           color: Colors.red),
-                                        //     ),
-                                        //   ));
-                                        // }
-                                      }, //Download video
-                                    )
-                                  ],
+                                  ),
                                 ),
                               );
                             },
                           ),
                           ListView.builder(
-                            itemCount: resVidLinks.length,
+                            itemCount: resVideos.length,
                             itemBuilder: (context, index) {
                               return SizedBox(
                                 child: GestureDetector(
+                                  onTap: () async {
+                                    resVidLinks.isNotEmpty
+                                        ? await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) => VideoPlay(
+                                                    resVidLinks[index],resVideos[index])))
+                                        : ScaffoldMessenger.of(context)
+                                            .showSnackBar(const SnackBar(
+                                            content: Text(
+                                              "Database error: Link doesn't exist!",
+                                              style:
+                                                  TextStyle(color: Colors.red),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ));
+                                  },
                                   child: Padding(
                                     padding:
-                                        const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                                        const EdgeInsets.fromLTRB(8, 15, 8, 0),
                                     child: Row(
                                       children: [
                                         const Icon(
-                                          Icons.insert_link_rounded,
+                                          Icons.play_circle_outline_rounded,
                                           color: Colors.red,
                                         ),
                                         const SizedBox(
@@ -399,38 +385,13 @@ class _InformationState extends State<Information> {
                                         ),
                                         Flexible(
                                           child: SizedBox(
-                                            width: width - 100,
-                                            child: Link(
-                                              uri: Uri.parse("https://" +
-                                                  resVidLinks[index]),
-                                              builder: (context, followLink) =>
-                                                  GestureDetector(
-                                                onLongPress: () {
-                                                  Clipboard.setData(
-                                                      ClipboardData(
-                                                          text: resVidLinks[
-                                                              index]));
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                          const SnackBar(
-                                                    content: Text(
-                                                      "Link copied",
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                    ),
-                                                  ));
-                                                },
-                                                onTap: followLink,
-                                                child: Text(
-                                                  resVidLinks[index],
-                                                  overflow:
-                                                      TextOverflow.visible,
-                                                  maxLines: 1,
-                                                  style: const TextStyle(
-                                                      color: Colors.blue,
-                                                      fontStyle:
-                                                          FontStyle.italic),
-                                                ),
+                                            width: width - 50,
+                                            child: Text(
+                                              resVideos[index],
+                                              overflow: TextOverflow.visible,
+                                              maxLines: 1,
+                                              style: const TextStyle(
+                                                color: Colors.redAccent,
                                               ),
                                             ),
                                           ),
