@@ -1,8 +1,7 @@
 import 'dart:io';
-import 'dart:ui';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gadget_boy/screens/videoplayer.dart';
@@ -28,6 +27,7 @@ class Information extends StatefulWidget {
 
 class _InformationState extends State<Information> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final ScrollController _scrollController = ScrollController();
 
   late String copyLink = '';
 
@@ -37,15 +37,23 @@ class _InformationState extends State<Information> {
   late double newHeight;
   late bool hasData = false;
   late bool pdfExist = false;
+  late bool equal = false;
+  late bool greater = false;
+  late bool greaterStart = false;
+  late bool less = false;
+  late bool lessStart = false;
 
   var resDescription;
   List<String> resLinks = [];
   List<String> resVidLinks = [];
   List<String> resVideos = [];
   List<String> resImages = [];
+  List<String> resNotes = [];
   List<String> resImgLink = [];
   List<String> resPdf = [];
   List<String> resPdfLink = [];
+  List<String> resNoteImages = [];
+  List<String> resNoteImgLink = [];
 
   @override
   void initState() {
@@ -53,11 +61,14 @@ class _InformationState extends State<Information> {
       setState(() {
         resDescription;
         resImgLink;
+        resNotes;
         resVidLinks;
         resImages;
         resLinks;
         resVideos;
         hasData;
+        resNoteImages;
+        resNoteImgLink;
       });
     });
     super.initState();
@@ -69,27 +80,24 @@ class _InformationState extends State<Information> {
     if (docSnapshot.exists) {
       Map<String, dynamic>? data = docSnapshot.data();
       resDescription = data!['description'];
-      print(data);
       try {
         resLinks = List.from(data['links']);
-      } catch (e) {
-        print("e1 :   $e");
-      }
+      } catch (e) {}
+      try {
+        resNotes = List.from(data['notes']);
+      } catch (e) {}
       try {
         resImages = List.from(data['images']);
-      } catch (e) {
-        print("e2 :   $e");
-      }
+      } catch (e) {}
       try {
         resPdf = List.from(data['pdf']);
-      } catch (e) {
-        print("e3 :   $e");
-      }
+      } catch (e) {}
       try {
         resVideos = List.from(data['videos']);
-      } catch (e) {
-        print("e5 :   $e");
-      }
+      } catch (e) {}
+      try {
+        resNoteImages = List.from(data['noteImages']);
+      } catch (e) {}
 
       hasData = true;
     } else {
@@ -111,9 +119,7 @@ class _InformationState extends State<Information> {
         String link = await ref.getDownloadURL();
         resPdfLink.add(link);
       }
-    } catch (e) {
-      print("e6 :   $e");
-    }
+    } catch (e) {}
     try {
       for (var element in resImages) {
         Reference ref = FirebaseStorage.instance.ref().child(
@@ -121,9 +127,7 @@ class _InformationState extends State<Information> {
         String link = await ref.getDownloadURL();
         resImgLink.add(link);
       }
-    } catch (e) {
-      print("e7 :   $e");
-    }
+    } catch (e) {}
     try {
       for (var element in resVideos) {
         Reference ref = FirebaseStorage.instance.ref().child(
@@ -131,9 +135,19 @@ class _InformationState extends State<Information> {
         String link = await ref.getDownloadURL();
         resVidLinks.add(link);
       }
-    } catch (e) {
-      print("e7 :   $e");
-    }
+    } catch (e) {}
+    try {
+      for (var element in resNoteImages) {
+        Reference ref = FirebaseStorage.instance.ref().child(
+            "${widget.typeFirebase}/${widget.searchData}/noteImages/$element");
+        String link = await ref.getDownloadURL();
+        resNoteImgLink.add(link);
+      }
+    } catch (e) {}
+
+    if (resNoteImgLink.length == resNotes.length) equal = true;
+    if (resNoteImgLink.length < resNotes.length) greater = true;
+    if (resNoteImgLink.length > resNotes.length) less = true;
   }
 
   @override
@@ -153,7 +167,7 @@ class _InformationState extends State<Information> {
     newHeight = height - pad.top - pad.bottom;
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       key: _scaffoldKey,
       child: hasData
           ? Scaffold(
@@ -249,6 +263,9 @@ class _InformationState extends State<Information> {
                               color: Colors.redAccent),
                         ),
                         Tab(
+                          icon: Icon(Icons.note, color: Colors.redAccent),
+                        ),
+                        Tab(
                           icon: Icon(Icons.picture_as_pdf_rounded,
                               color: Colors.redAccent),
                         ),
@@ -295,6 +312,180 @@ class _InformationState extends State<Information> {
                             ),
                             pageController: PageController(),
                           ),
+
+                          equal
+                              ? Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(0, 10, 0, 15),
+                                  child: ListView.builder(
+                                    scrollDirection: Axis.vertical,
+                                    physics: const BouncingScrollPhysics(),
+                                    itemCount: resNoteImgLink.length,
+                                    itemBuilder: (context, index) {
+                                      return Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                            10, 3.5, 10, 0),
+                                        child: Center(
+                                          child: Column(
+                                            children: [
+                                              Text(
+                                                " ${resNotes[index]}",
+                                                style: const TextStyle(
+                                                    color: Colors.redAccent),
+                                              ),
+                                              const SizedBox(
+                                                height: 10,
+                                              ),
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 0,
+                                                        horizontal: 10),
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  child: CachedNetworkImage(
+                                                      imageUrl:
+                                                          resNoteImgLink[index],
+                                                      placeholder: (context,
+                                                              url) =>
+                                                          const Center(
+                                                              child: Padding(
+                                                                padding: EdgeInsets.all(4),
+                                                                child: SizedBox(
+                                                                    width: 16,
+                                                                    height: 16,
+                                                                    child:
+                                                                        CircularProgressIndicator(
+                                                                      color: Colors
+                                                                          .redAccent,
+                                                                    )),
+                                                              )),
+                                                      errorWidget: (context,
+                                                              url, error) =>
+                                                          const Icon(
+                                                              Icons.error)),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                )
+                              : greater
+                                  ? Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          0, 10, 0, 15),
+                                      child: ListView.builder(
+                                        physics: const BouncingScrollPhysics(),
+                                        itemCount: resNotes.length,
+                                        itemBuilder: (context, index) {
+                                          return Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                                10, 3.5, 10, 0),
+                                            child: Center(
+                                              child: Column(
+                                                children: [
+                                                  Text(
+                                                    " ${resNotes[index]}",
+                                                    style: const TextStyle(
+                                                        color:
+                                                            Colors.redAccent),
+                                                  ),
+                                                  Padding(
+                                                    padding: const EdgeInsets
+                                                            .symmetric(
+                                                        vertical: 4,
+                                                        horizontal: 10),
+                                                    child: index >
+                                                            (resNoteImgLink
+                                                                    .length -
+                                                                1)
+                                                        ? Container()
+                                                        : ClipRRect(
+                                                        borderRadius: BorderRadius.circular(8),
+                                                          child: CachedNetworkImage(
+                                                              imageUrl: resNoteImgLink[index],
+                                                              placeholder: (context, url) => const Center(
+                                                                  child: Padding(
+                                                                    padding: EdgeInsets.all(4),
+                                                                    child: SizedBox(
+                                                                        width: 16,
+                                                                        height: 16,
+                                                                        child: CircularProgressIndicator(
+                                                                          color:
+                                                                              Colors.redAccent,
+                                                                        )),
+                                                                  )),
+                                                              errorWidget: (context, url, error) => const Icon(Icons.error)),
+                                                        ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    )
+                                  : less
+                                      ? Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                              0, 10, 0, 15),
+                                          child: ListView.builder(
+                                            physics:
+                                                const BouncingScrollPhysics(),
+                                            itemCount: resNoteImgLink.length,
+                                            itemBuilder: (context, index) {
+                                              return Padding(
+                                                padding:
+                                                    const EdgeInsets.fromLTRB(
+                                                        10, 3.5, 10, 0),
+                                                child: Center(
+                                                  child: Column(
+                                                    children: [
+                                                      index >
+                                                              (resNotes.length -
+                                                                  1)
+                                                          ? Container()
+                                                          : Text(
+                                                              " ${resNotes[index]}",
+                                                              style: const TextStyle(
+                                                                  color: Colors
+                                                                      .redAccent),
+                                                            ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                    .symmetric(
+                                                                vertical: 4,
+                                                                horizontal: 10),
+                                                        child: ClipRRect(
+                                                          borderRadius: BorderRadius.circular(8),
+                                                          child: CachedNetworkImage(
+                                                              imageUrl: resNoteImgLink[index],
+                                                              placeholder: (context, url) => const Center(
+                                                                  child: Padding(
+                                                                    padding: EdgeInsets.all(4),
+                                                                    child: SizedBox(
+                                                                        width: 16,
+                                                                        height: 16,
+                                                                        child: CircularProgressIndicator(
+                                                                          color:
+                                                                              Colors.redAccent,
+                                                                        )),
+                                                                  )),
+                                                              errorWidget: (context, url, error) => const Icon(Icons.error)),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        )
+                                      : Container(),
                           ListView.builder(
                             itemCount: resPdf.length,
                             itemBuilder: (context, index) {
@@ -360,7 +551,8 @@ class _InformationState extends State<Information> {
                                             context,
                                             MaterialPageRoute(
                                                 builder: (context) => VideoPlay(
-                                                    resVidLinks[index],resVideos[index])))
+                                                    resVidLinks[index],
+                                                    resVideos[index])))
                                         : ScaffoldMessenger.of(context)
                                             .showSnackBar(const SnackBar(
                                             content: Text(

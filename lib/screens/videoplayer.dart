@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:appinio_video_player/appinio_video_player.dart';
 import 'package:flutter/services.dart';
@@ -24,7 +23,6 @@ class _VideoPlayState extends State<VideoPlay> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _videoPlayerController = VideoPlayerController.network(widget.videoLink)
       ..initialize().then((value) => setState(() {}));
@@ -47,8 +45,8 @@ class _VideoPlayState extends State<VideoPlay> {
 
   @override
   Widget build(BuildContext context) {
-    print(widget.videoLink);
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         leading: BackButton(
           color: Colors.redAccent,
@@ -64,18 +62,22 @@ class _VideoPlayState extends State<VideoPlay> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(5.0),
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              child:
-                CustomVideoPlayer(
-                  customVideoPlayerController: CustomVideoPlayerController(
-                    context: context,
-                    videoPlayerController: _videoPlayerController,
-                    customVideoPlayerSettings: _customVideoPlayerSettings,
+          child: SizedBox(
+            child:
+              Stack(
+                children: [const Padding(
+                  padding: EdgeInsets.fromLTRB(0, 100, 0, 0),
+                  child: Align(alignment: Alignment.topCenter,child: CircularProgressIndicator(color: Colors.redAccent,)),
+                ),Align(alignment: Alignment.topCenter,
+                  child: CustomVideoPlayer(
+                    customVideoPlayerController: CustomVideoPlayerController(
+                      context: context,
+                      videoPlayerController: _videoPlayerController,
+                      customVideoPlayerSettings: _customVideoPlayerSettings,
+                    ),
                   ),
-                ),
-            ),
+                ),],
+              ),
           ),
         ),
       ),
