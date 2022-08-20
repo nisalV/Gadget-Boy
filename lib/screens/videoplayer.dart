@@ -3,8 +3,7 @@ import 'package:appinio_video_player/appinio_video_player.dart';
 import 'package:flutter/services.dart';
 
 class VideoPlay extends StatefulWidget {
-  final String videoLink;
-  final String videoName;
+  final String videoLink,videoName;
   const VideoPlay(this.videoLink,this.videoName,{Key? key}) : super(key: key);
 
   @override

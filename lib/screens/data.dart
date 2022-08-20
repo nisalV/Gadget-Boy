@@ -13,9 +13,7 @@ import 'package:url_launcher/link.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class Information extends StatefulWidget {
-  final String searchType;
-  final String searchData;
-  final String typeFirebase;
+  final String searchType,searchData,typeFirebase;
 
   const Information(this.searchData, this.searchType, this.typeFirebase,
       {Key? key})
@@ -27,33 +25,29 @@ class Information extends StatefulWidget {
 
 class _InformationState extends State<Information> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final ScrollController _scrollController = ScrollController();
 
   late String copyLink = '';
 
-  late double width;
-  late double height;
-  var pad;
-  late double newHeight;
-  late bool hasData = false;
-  late bool pdfExist = false;
-  late bool equal = false;
-  late bool greater = false;
-  late bool greaterStart = false;
-  late bool less = false;
-  late bool lessStart = false;
+  late double width,height,newHeight;
+  var pad,resDescription;
+  late bool hasData = false,
+  pdfExist = false,
+  equal = false,
+  greater = false,
+  greaterStart = false,
+  less = false,
+  lessStart = false;
 
-  var resDescription;
-  List<String> resLinks = [];
-  List<String> resVidLinks = [];
-  List<String> resVideos = [];
-  List<String> resImages = [];
-  List<String> resNotes = [];
-  List<String> resImgLink = [];
-  List<String> resPdf = [];
-  List<String> resPdfLink = [];
-  List<String> resNoteImages = [];
-  List<String> resNoteImgLink = [];
+  List<String> resLinks = [],
+  resVidLinks = [],
+  resVideos = [],
+  resImages = [],
+  resNotes = [],
+  resImgLink = [],
+  resPdf = [],
+  resPdfLink = [],
+  resNoteImages = [],
+  resNoteImgLink = [];
 
   @override
   void initState() {
@@ -144,6 +138,14 @@ class _InformationState extends State<Information> {
         resNoteImgLink.add(link);
       }
     } catch (e) {}
+    // try {
+    //   for (var element in resLinks) {
+    //     Reference ref = FirebaseStorage.instance.ref().child(
+    //         "${widget.typeFirebase}/${widget.searchData}/links/$element");
+    //     String link = await ref.getDownloadURL();
+    //     resLinks.add(link);
+    //   }
+    // } catch (e) {}
 
     if (resNoteImgLink.length == resNotes.length) equal = true;
     if (resNoteImgLink.length < resNotes.length) greater = true;

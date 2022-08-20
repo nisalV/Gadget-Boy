@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 class ViewPDF extends StatefulWidget {
-  final String pdfName;
-  final String link;
+  final String pdfName,link;
 
   const ViewPDF(this.pdfName, this.link, {Key? key}) : super(key: key);
 

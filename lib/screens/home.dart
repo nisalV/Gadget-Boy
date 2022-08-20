@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutterfire_ui/firestore.dart';
+import 'package:paginate_firestore/bloc/pagination_listeners.dart';
 import 'data.dart';
 
 class Home extends StatefulWidget {
@@ -11,25 +13,41 @@ class Home extends StatefulWidget {
 }
 
 class _HomeScreen extends State<Home> {
-  final _formKey = GlobalKey<FormState>();
-  final _formKeyDialog = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>(),
+      _formKeyDialog = GlobalKey<FormState>();
 
-  final form01Controller = TextEditingController();
-  final form02Controller = TextEditingController();
-  final form03Controller = TextEditingController();
-  final form04Controller = TextEditingController();
-  final form05Controller = TextEditingController();
-  final form06Controller = TextEditingController();
-  final form07Controller = TextEditingController();
+  static ValueNotifier<List> enteredValue = ValueNotifier([""]);
 
-  late bool form01Tap = false;
-  late bool form02Tap = false;
-  late bool form03Tap = false;
-  late bool form04Tap = false;
-  late bool form05Tap = false;
-  late bool back = false;
+  PaginateRefreshedChangeListener refreshChangeListener =
+      PaginateRefreshedChangeListener();
+
+  final form01Controller = TextEditingController(),
+      form02Controller = TextEditingController(),
+      form03Controller = TextEditingController(),
+      form04Controller = TextEditingController(),
+      form05Controller = TextEditingController(),
+      form06Controller = TextEditingController(),
+      form07Controller = TextEditingController();
+
+  late bool form01Tap = false,
+  form02Tap = false,
+  form03Tap = false,
+  form04Tap = false,
+  form05Tap = false,
+  back = false,
+  form01Changed = false,
+  form02Changed = false,
+  form03Changed = false,
+  form04Changed = false,
+  form05Changed = false;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  List _form01Data = [];
+  List _form02Data = [];
+  List _form03Data = [];
+  List _form04Data = [];
+  List _form05Data = [];
 
   @override
   void initState() {
@@ -61,6 +79,41 @@ class _HomeScreen extends State<Home> {
     }
   }
 
+  Future<QuerySnapshot> getDocs(List docList) async {
+    return await FirebaseFirestore.instance
+        .collection('Fault Code')
+        .where("code", arrayContainsAny: docList)
+        .get();
+  }
+
+  Future<QuerySnapshot> getDocs1(List docList) async {
+    return await FirebaseFirestore.instance
+        .collection('Sensor Data')
+        .where("code", arrayContainsAny: docList)
+        .get();
+  }
+
+  Future<QuerySnapshot> getDocs2(List docList) async {
+    return await FirebaseFirestore.instance
+        .collection('ECU')
+        .where("code", arrayContainsAny: docList)
+        .get();
+  }
+
+  Future<QuerySnapshot> getDocs3(List docList) async {
+    return await FirebaseFirestore.instance
+        .collection('Fuse')
+        .where("code", arrayContainsAny: docList)
+        .get();
+  }
+
+  Future<QuerySnapshot> getDocs4(List docList) async {
+    return await FirebaseFirestore.instance
+        .collection('Wiring')
+        .where("code", arrayContainsAny: docList)
+        .get();
+  }
+
   @override
   void didChangeDependencies() {
     form01Controller.text;
@@ -75,6 +128,19 @@ class _HomeScreen extends State<Home> {
     form03Tap;
     form04Tap;
     form05Tap;
+    enteredValue;
+    setState(() {
+      _form01Data;
+      _form02Data;
+      _form03Data;
+      _form04Data;
+      _form05Data;
+      form01Changed;
+      form02Changed;
+      form03Changed;
+      form04Changed;
+      form05Changed;
+    });
     super.didChangeDependencies();
   }
 
@@ -147,6 +213,17 @@ class _HomeScreen extends State<Home> {
                         width: 0,
                       )
                     : TextFormField(
+                        onChanged: (context) {
+                          setState(() {
+                            _form01Data = form01Controller.text
+                                .trim()
+                                .toLowerCase()
+                                .split(" ");
+                            enteredValue.value = _form01Data;
+                            print(enteredValue);
+                            form01Changed = true;
+                          });
+                        },
                         autofocus: form01Tap ? true : false,
                         controller: form01Controller,
                         maxLines: 1,
@@ -185,27 +262,6 @@ class _HomeScreen extends State<Home> {
                                             color: Colors.redAccent,
                                           ),
                                         ),
-                                        IconButton(
-                                          splashRadius: 12.0,
-                                          onPressed: () async {
-                                            refresh();
-                                            FocusScope.of(context).unfocus();
-                                            await Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        Information(
-                                                            form01Controller
-                                                                .text,
-                                                            "Fault code",
-                                                            "Fault Code")));
-                                            clearField();
-                                          },
-                                          icon: const Icon(
-                                            Icons.search_sharp,
-                                            color: Colors.redAccent,
-                                          ),
-                                        ),
                                       ],
                                     ),
                                   )),
@@ -221,6 +277,53 @@ class _HomeScreen extends State<Home> {
                           });
                         },
                       ),
+                form01Tap &&
+                        form01Controller.text.isNotEmpty &&
+                        _form01Data.isNotEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height - 200,
+                          child: FirestoreListView(
+                              pageSize: 20,
+                              physics: const BouncingScrollPhysics(),
+                              shrinkWrap: true,
+                              query: FirebaseFirestore.instance
+                                  .collection('Fault Code')
+                                  .where("code", arrayContainsAny: _form01Data),
+                              itemBuilder: (BuildContext context,
+                                  QueryDocumentSnapshot<dynamic> doc) {
+                                return GestureDetector(
+                                  onTap: () async {
+                                    refresh();
+                                    FocusScope.of(context).unfocus();
+                                    await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) => Information(
+                                                doc.id,
+                                                "Fault Code",
+                                                "Fault Code")));
+                                    clearField();
+                                  },
+                                  child: Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Text(
+                                        doc.id,
+                                        style: const TextStyle(
+                                            color: Colors.redAccent,
+                                            fontSize: 15),
+                                        overflow: TextOverflow.visible,
+                                        maxLines: 2,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                        ),
+                      )
+                    : Container(),
                 form02Tap || form03Tap || form04Tap || form05Tap
                     ? const SizedBox(
                         height: 0,
@@ -237,6 +340,17 @@ class _HomeScreen extends State<Home> {
                         width: 0,
                       )
                     : TextFormField(
+                  onChanged: (context) {
+                    setState(() {
+                      _form02Data = form02Controller.text
+                          .trim()
+                          .toLowerCase()
+                          .split(" ");
+                      enteredValue.value = _form02Data;
+                      print(enteredValue);
+                      form02Changed = true;
+                    });
+                  },
                         autofocus: form02Tap ? true : false,
                         controller: form02Controller,
                         maxLines: 1,
@@ -275,27 +389,6 @@ class _HomeScreen extends State<Home> {
                                             color: Colors.redAccent,
                                           ),
                                         ),
-                                        IconButton(
-                                          splashRadius: 12.0,
-                                          onPressed: () async {
-                                            refresh();
-                                            FocusScope.of(context).unfocus();
-                                            await Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        Information(
-                                                            form02Controller
-                                                                .text,
-                                                            'Sensor/ Actuator live data & pin-out',
-                                                            "Sensor Data")));
-                                            clearField();
-                                          },
-                                          icon: const Icon(
-                                            Icons.search_sharp,
-                                            color: Colors.redAccent,
-                                          ),
-                                        ),
                                       ],
                                     ),
                                   )),
@@ -311,6 +404,53 @@ class _HomeScreen extends State<Home> {
                           });
                         },
                       ),
+                form02Tap &&
+                    form02Controller.text.isNotEmpty &&
+                    _form02Data.isNotEmpty
+                    ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height - 200,
+                    child: FirestoreListView(
+                        pageSize: 20,
+                        physics: const BouncingScrollPhysics(),
+                        shrinkWrap: true,
+                        query: FirebaseFirestore.instance
+                            .collection('Sensor Data')
+                            .where("code", arrayContainsAny: _form01Data),
+                        itemBuilder: (BuildContext context,
+                            QueryDocumentSnapshot<dynamic> doc) {
+                          return GestureDetector(
+                            onTap: () async {
+                              refresh();
+                              FocusScope.of(context).unfocus();
+                              await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => Information(
+                                          doc.id,
+                                          'Sensor/ Actuator live data & pin-out',
+                                          "Sensor Data")));
+                              clearField();
+                            },
+                            child: Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Text(
+                                  doc.id,
+                                  style: const TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 15),
+                                  overflow: TextOverflow.visible,
+                                  maxLines: 2,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                  ),
+                )
+                    : Container(),
                 form01Tap || form03Tap || form04Tap || form05Tap
                     ? const SizedBox(
                         height: 0,
@@ -327,6 +467,17 @@ class _HomeScreen extends State<Home> {
                         width: 0,
                       )
                     : TextFormField(
+                  onChanged: (context) {
+                    setState(() {
+                      _form03Data = form03Controller.text
+                          .trim()
+                          .toLowerCase()
+                          .split(" ");
+                      enteredValue.value = _form03Data;
+                      print(enteredValue);
+                      form03Changed = true;
+                    });
+                  },
                         autofocus: form03Tap ? true : false,
                         controller: form03Controller,
                         maxLines: 1,
@@ -365,27 +516,6 @@ class _HomeScreen extends State<Home> {
                                             color: Colors.redAccent,
                                           ),
                                         ),
-                                        IconButton(
-                                          splashRadius: 12.0,
-                                          onPressed: () async {
-                                            refresh();
-                                            FocusScope.of(context).unfocus();
-                                            await Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        Information(
-                                                            form03Controller
-                                                                .text,
-                                                            'ECU data & pin-out',
-                                                            "ECU")));
-                                            clearField();
-                                          },
-                                          icon: const Icon(
-                                            Icons.search_sharp,
-                                            color: Colors.redAccent,
-                                          ),
-                                        ),
                                       ],
                                     ),
                                   )),
@@ -401,6 +531,53 @@ class _HomeScreen extends State<Home> {
                           });
                         },
                       ),
+                form03Tap &&
+                    form03Controller.text.isNotEmpty &&
+                    _form03Data.isNotEmpty
+                    ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height - 200,
+                    child: FirestoreListView(
+                        pageSize: 20,
+                        physics: const BouncingScrollPhysics(),
+                        shrinkWrap: true,
+                        query: FirebaseFirestore.instance
+                            .collection('ECU')
+                            .where("code", arrayContainsAny: _form03Data),
+                        itemBuilder: (BuildContext context,
+                            QueryDocumentSnapshot<dynamic> doc) {
+                          return GestureDetector(
+                            onTap: () async {
+                              refresh();
+                              FocusScope.of(context).unfocus();
+                              await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => Information(
+                                          doc.id,
+                                          'ECU data & pin-out',
+                                          "ECU")));
+                              clearField();
+                            },
+                            child: Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Text(
+                                  doc.id,
+                                  style: const TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 15),
+                                  overflow: TextOverflow.visible,
+                                  maxLines: 2,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                  ),
+                )
+                    : Container(),
                 form01Tap || form02Tap || form04Tap || form05Tap
                     ? const SizedBox(
                         height: 0,
@@ -417,6 +594,17 @@ class _HomeScreen extends State<Home> {
                         width: 0,
                       )
                     : TextFormField(
+                  onChanged: (context) {
+                    setState(() {
+                      _form04Data = form04Controller.text
+                          .trim()
+                          .toLowerCase()
+                          .split(" ");
+                      enteredValue.value = _form04Data;
+                      print(enteredValue);
+                      form04Changed = true;
+                    });
+                  },
                         autofocus: form04Tap ? true : false,
                         controller: form04Controller,
                         maxLines: 1,
@@ -455,27 +643,6 @@ class _HomeScreen extends State<Home> {
                                             color: Colors.redAccent,
                                           ),
                                         ),
-                                        IconButton(
-                                          splashRadius: 12.0,
-                                          onPressed: () async {
-                                            refresh();
-                                            FocusScope.of(context).unfocus();
-                                            await Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        Information(
-                                                            form04Controller
-                                                                .text,
-                                                            'Fuse Box location & diagram',
-                                                            "Fuse")));
-                                            clearField();
-                                          },
-                                          icon: const Icon(
-                                            Icons.search_sharp,
-                                            color: Colors.redAccent,
-                                          ),
-                                        ),
                                       ],
                                     ),
                                   )),
@@ -491,6 +658,53 @@ class _HomeScreen extends State<Home> {
                           });
                         },
                       ),
+                form04Tap &&
+                    form04Controller.text.isNotEmpty &&
+                    _form04Data.isNotEmpty
+                    ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height - 200,
+                    child: FirestoreListView(
+                        pageSize: 20,
+                        physics: const BouncingScrollPhysics(),
+                        shrinkWrap: true,
+                        query: FirebaseFirestore.instance
+                            .collection('Fuse')
+                            .where("code", arrayContainsAny: _form04Data),
+                        itemBuilder: (BuildContext context,
+                            QueryDocumentSnapshot<dynamic> doc) {
+                          return GestureDetector(
+                            onTap: () async {
+                              refresh();
+                              FocusScope.of(context).unfocus();
+                              await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => Information(
+                                          doc.id,
+                                          'Fuse Box location & diagram',
+                                          "Fuse")));
+                              clearField();
+                            },
+                            child: Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Text(
+                                  doc.id,
+                                  style: const TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 15),
+                                  overflow: TextOverflow.visible,
+                                  maxLines: 2,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                  ),
+                )
+                    : Container(),
                 form01Tap || form02Tap || form03Tap || form05Tap
                     ? const SizedBox(
                         height: 0,
@@ -499,7 +713,7 @@ class _HomeScreen extends State<Home> {
                         height: 20,
                       ),
 
-                //field 04
+                //field 05
 
                 form01Tap || form02Tap || form03Tap || form04Tap
                     ? const SizedBox(
@@ -507,6 +721,17 @@ class _HomeScreen extends State<Home> {
                         width: 0,
                       )
                     : TextFormField(
+                  onChanged: (context) {
+                    setState(() {
+                      _form05Data = form05Controller.text
+                          .trim()
+                          .toLowerCase()
+                          .split(" ");
+                      enteredValue.value = _form05Data;
+                      print(enteredValue);
+                      form05Changed = true;
+                    });
+                  },
                         autofocus: form05Tap ? true : false,
                         controller: form05Controller,
                         maxLines: 1,
@@ -545,27 +770,6 @@ class _HomeScreen extends State<Home> {
                                             color: Colors.redAccent,
                                           ),
                                         ),
-                                        IconButton(
-                                          splashRadius: 12.0,
-                                          onPressed: () async {
-                                            refresh();
-                                            FocusScope.of(context).unfocus();
-                                            await Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        Information(
-                                                            form05Controller
-                                                                .text,
-                                                            'Wiring diagram & workshop manual',
-                                                            "Wiring")));
-                                            clearField();
-                                          },
-                                          icon: const Icon(
-                                            Icons.search_sharp,
-                                            color: Colors.redAccent,
-                                          ),
-                                        ),
                                       ],
                                     ),
                                   )),
@@ -581,6 +785,53 @@ class _HomeScreen extends State<Home> {
                           });
                         },
                       ),
+                form05Tap &&
+                    form05Controller.text.isNotEmpty &&
+                    _form05Data.isNotEmpty
+                    ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height - 200,
+                    child: FirestoreListView(
+                        pageSize: 20,
+                        physics: const BouncingScrollPhysics(),
+                        shrinkWrap: true,
+                        query: FirebaseFirestore.instance
+                            .collection('Wiring')
+                            .where("code", arrayContainsAny: _form05Data),
+                        itemBuilder: (BuildContext context,
+                            QueryDocumentSnapshot<dynamic> doc) {
+                          return GestureDetector(
+                            onTap: () async {
+                              refresh();
+                              FocusScope.of(context).unfocus();
+                              await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => Information(
+                                          doc.id,
+                                          'Wiring diagram & workshop manual',
+                                          "Wiring")));
+                              clearField();
+                            },
+                            child: Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Text(
+                                  doc.id,
+                                  style: const TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 15),
+                                  overflow: TextOverflow.visible,
+                                  maxLines: 2,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                  ),
+                )
+                    : Container(),
                 form01Tap || form02Tap || form03Tap || form04Tap || form05Tap
                     ? Container(
                         width: 0,
