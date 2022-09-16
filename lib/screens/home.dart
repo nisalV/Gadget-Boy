@@ -417,7 +417,7 @@ class _HomeScreen extends State<Home> {
                         shrinkWrap: true,
                         query: FirebaseFirestore.instance
                             .collection('Sensor Data')
-                            .where("code", arrayContainsAny: _form01Data),
+                            .where("code", arrayContainsAny: _form02Data),
                         itemBuilder: (BuildContext context,
                             QueryDocumentSnapshot<dynamic> doc) {
                           return GestureDetector(
